@@ -1,0 +1,89 @@
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* Faint blueprint grid — the lab floor. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--bg-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, #000 30%, transparent 78%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+img, svg, video { display: block; max-width: 100%; }
+
+/* Components set `display` explicitly, which would otherwise beat the user
+   agent's [hidden] rule and leak gated controls (e.g. Continue buttons). */
+[hidden] { display: none !important; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; }
+a { color: inherit; text-decoration: none; }
+
+h1, h2, h3, h4 { line-height: 1.2; font-weight: 650; letter-spacing: -.01em; }
+h1 { font-size: var(--fs-xl); }
+h2 { font-size: var(--fs-lg); }
+h3 { font-size: var(--fs-md); }
+p { text-wrap: pretty; }
+code, kbd, samp, pre { font-family: var(--mono); font-size: .925em; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+::selection { background: var(--accent-soft); }
+
+.skip-link {
+  position: absolute; left: -9999px; top: 0; z-index: 100;
+  background: var(--accent); color: var(--accent-ink);
+  padding: var(--sp-2) var(--sp-4); border-radius: 0 0 var(--r) 0;
+}
+.skip-link:focus { left: 0; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* Scrollbars that match the lab. */
+* { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--line); border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-thumb:hover { background: var(--surface-3); background-clip: content-box; }
+
+/* ---- Boot screen ---- */
+.boot {
+  position: fixed; inset: 0; z-index: 90;
+  display: grid; place-items: center;
+  background: var(--bg);
+  transition: opacity var(--dur-3) var(--ease);
+}
+.boot[data-leaving="1"] { opacity: 0; pointer-events: none; }
+.boot__inner { text-align: center; }
+.boot__mark {
+  font-family: var(--mono); font-size: 3rem; color: var(--accent);
+  animation: blink 1.1s steps(2, start) infinite;
+}
+.boot__title { font-family: var(--mono); letter-spacing: .32em; font-size: var(--fs-sm); color: var(--text-dim); margin-top: var(--sp-3); }
+.boot__sub { color: var(--text-faint); font-size: var(--fs-xs); margin-top: var(--sp-2); }
+@keyframes blink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: .25 } }

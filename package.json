@@ -1,0 +1,13 @@
+{
+  "name": "python-training-lab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An interactive Python laboratory that runs real CPython in the browser. The application itself has no dependencies and no build step; this file exists only for the end-to-end verification script.",
+  "scripts": {
+    "serve": "python3 -m http.server 8777",
+    "verify": "node tools/verify.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.1"
+  }
+}

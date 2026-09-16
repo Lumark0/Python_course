@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>Python Training Lab</title>
+<meta name="description" content="An interactive laboratory where beginners learn Python by running real Python in the browser.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230b1220'/><text y='.9em' x='50%25' text-anchor='middle' font-size='62' font-family='monospace' fill='%2338e1c4'>&gt;_</text></svg>">
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/app.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="modulepreload" href="assets/js/main.js">
+</head>
+<body>
+<a class="skip-link" href="#view">Skip to content</a>
+
+<!-- Boot screen: shown until the app shell mounts. -->
+<div id="boot" class="boot">
+  <div class="boot__inner">
+    <div class="boot__mark" aria-hidden="true">&gt;_</div>
+    <p class="boot__title">PYTHON TRAINING LAB</p>
+    <p class="boot__sub">Initialising laboratory…</p>
+  </div>
+</div>
+
+<div id="app" class="app" hidden>
+  <header class="topbar">
+    <button class="topbar__menu iconbtn" id="navToggle" aria-label="Open navigation" aria-expanded="false" aria-controls="rail">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="topbar__brand" href="#/">
+      <span class="topbar__mark" aria-hidden="true">&gt;_</span>
+      <span class="topbar__name">PYTHON TRAINING LAB</span>
+    </a>
+    <div class="topbar__spacer"></div>
+    <div class="engine-chip" id="engineChip" role="status" aria-live="polite" title="Python engine status">
+      <span class="engine-chip__dot"></span>
+      <span class="engine-chip__text">Engine idle</span>
+    </div>
+    <a class="topbar__progress" href="#/progress" title="Overall progress">
+      <svg class="ring" viewBox="0 0 36 36" aria-hidden="true">
+        <circle class="ring__track" cx="18" cy="18" r="15.5"></circle>
+        <circle class="ring__value" id="ringValue" cx="18" cy="18" r="15.5"></circle>
+      </svg>
+      <span class="topbar__pct" id="topPct">0%</span>
+    </a>
+  </header>
+
+  <nav class="rail" id="rail" aria-label="Main">
+    <ul class="rail__list">
+      <li><a href="#/" data-nav="home"><span class="rail__ico" aria-hidden="true">◈</span><span class="rail__lbl">Home</span></a></li>
+      <li><a href="#/missions" data-nav="missions"><span class="rail__ico" aria-hidden="true">▤</span><span class="rail__lbl">Missions</span></a></li>
+      <li><a href="#/mission/m01" data-nav="current"><span class="rail__ico" aria-hidden="true">▶</span><span class="rail__lbl">Current</span></a></li>
+      <li><a href="#/sandbox" data-nav="sandbox"><span class="rail__ico" aria-hidden="true">⌨</span><span class="rail__lbl">Sandbox</span></a></li>
+      <li><a href="#/progress" data-nav="progress"><span class="rail__ico" aria-hidden="true">◑</span><span class="rail__lbl">Progress</span></a></li>
+      <li><a href="#/achievements" data-nav="achievements"><span class="rail__ico" aria-hidden="true">✦</span><span class="rail__lbl">Badges</span></a></li>
+      <li><a href="#/settings" data-nav="settings"><span class="rail__ico" aria-hidden="true">⚙</span><span class="rail__lbl">Settings</span></a></li>
+    </ul>
+    <div class="rail__foot">
+      <span class="rail__ver">v1.0 · prototype</span>
+    </div>
+  </nav>
+  <div class="rail__scrim" id="railScrim" hidden></div>
+
+  <main id="view" class="view" tabindex="-1"></main>
+</div>
+
+<div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<script type="module" src="assets/js/main.js"></script>
+<noscript>
+  <p style="padding:2rem;font-family:system-ui;color:#e6edf3;background:#0b1220">
+    Python Training Lab needs JavaScript enabled — it runs a real Python interpreter inside your browser.
+  </p>
+</noscript>
+</body>
+</html>

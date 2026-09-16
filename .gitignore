@@ -1,0 +1,5 @@
+# Local-only Pyodide copy used for offline testing.
+# Production loads Pyodide from the CDN (see assets/js/python/runtime.js).
+vendor/
+node_modules/
+.DS_Store
