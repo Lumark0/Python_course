@@ -1,5 +1,7 @@
 import { h } from '../core/dom.js';
 import { getState, setSetting, resetAll, exportJSON, importJSON } from '../core/store.js';
+import { getLearnerName, setLearnerName } from '../core/identity.js';
+import { SHEET_WEBHOOK_URL } from '../config.js';
 import { toast } from '../ui/toast.js';
 import * as runtime from '../python/runtime.js';
 import { go } from '../core/router.js';
@@ -19,11 +21,35 @@ export function settings(_params, outlet) {
     return h('div.seg', null, btns);
   };
 
+  const nameField = () => {
+    const input = h('input.field-input', {
+      type: 'text', maxlength: '60', value: getLearnerName(), placeholder: 'Your full name',
+      style: { maxWidth: '220px' },
+    });
+    input.addEventListener('change', () => {
+      const clean = setLearnerName(input.value);
+      input.value = clean;
+      toast({ title: 'Name updated', kind: 'ok', icon: '✎' });
+    });
+    return input;
+  };
+
   const engine = runtime.getStatus();
 
   outlet.appendChild(h('div.wrap.wrap--narrow', null, [
     h('div.eyebrow', null, 'Lab configuration'),
     h('h1', { style: { marginTop: 'var(--sp-2)' } }, 'Settings & help'),
+
+    SHEET_WEBHOOK_URL ? h('div.card', { style: { marginTop: 'var(--sp-5)' } }, [
+      h('div.eyebrow', null, 'You'),
+      h('div.setting', null, [
+        h('div', null, [
+          h('div.setting__name', null, 'Name'),
+          h('div.setting__desc', null, 'Shown to your teacher alongside your progress. Fix a typo here.'),
+        ]),
+        nameField(),
+      ]),
+    ]) : null,
 
     h('div.card', { style: { marginTop: 'var(--sp-5)' } }, [
       h('div.eyebrow', null, 'Display'),
@@ -68,7 +94,9 @@ export function settings(_params, outlet) {
     h('div.card', { style: { marginTop: 'var(--sp-4)' } }, [
       h('div.eyebrow', null, 'Your progress data'),
       h('p.faint', { style: { margin: 'var(--sp-2) 0 var(--sp-3)' } },
-        'Progress is stored in this browser only — there is no account and no server. Export it to move to another machine.'),
+        SHEET_WEBHOOK_URL
+          ? 'Progress lives in this browser and is also summarised to your teacher’s sheet under the name above. Export it to move to another machine.'
+          : 'Progress is stored in this browser only — there is no account and no server. Export it to move to another machine.'),
       h('div.row', null, [
         h('button.btn.btn--sm', { type: 'button', onclick: doExport }, '⇩ Export progress'),
         h('label.btn.btn--sm', { for: 'importFile' }, '⇧ Import progress'),

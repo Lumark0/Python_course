@@ -11,6 +11,9 @@ import { route, start } from './core/router.js';
 import { initSettings } from './core/settings.js';
 import { initShell, hideBoot } from './ui/shell.js';
 import { initBadges } from './engine/badges.js';
+import { ensureLearnerName } from './core/identity.js';
+import { initSync } from './core/sync.js';
+import { SHEET_WEBHOOK_URL } from './config.js';
 import * as runtime from './python/runtime.js';
 
 import { home } from './views/home.js';
@@ -24,6 +27,12 @@ import { renderMission } from './engine/mission.js';
 initSettings();
 initShell();
 initBadges();
+initSync();
+
+/* The name prompt only appears once a teacher has set SHEET_WEBHOOK_URL
+   in config.js. Nobody sees it, and nothing about the boot sequence
+   below changes, until a teacher opts in. */
+if (SHEET_WEBHOOK_URL) ensureLearnerName();
 
 route('/',              (p, o) => home(p, o));
 route('/missions',      (p, o) => missions(p, o));

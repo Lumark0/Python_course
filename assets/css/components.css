@@ -556,3 +556,48 @@ kbd {
   padding: .2rem .5rem; border-radius: var(--r-sm); background: var(--surface-2);
   border: 1px solid var(--line); word-break: break-all;
 }
+
+/* =============== Generic text field =============== */
+/* Used by Settings (learner name) and anywhere else a plain text input
+   is needed outside the bespoke lesson widgets above. */
+.field-input {
+  font: inherit; color: var(--text);
+  padding: .5rem .75rem; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--line);
+  outline-offset: 2px;
+}
+.field-input::placeholder { color: var(--text-faint); }
+.field-input:focus-visible { border-color: var(--accent); }
+
+/* =============== Name gate =============== */
+/* Sits above the boot screen (z-index 90) — the very first thing a
+   learner sees when a teacher has turned on progress sync. */
+.namegate {
+  position: fixed; inset: 0; z-index: 95;
+  display: grid; place-items: center;
+  padding: var(--sp-5);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(6px);
+}
+.namegate__card {
+  width: min(360px, 100%);
+  text-align: center;
+  background: var(--surface); border: 1px solid var(--line-soft);
+  border-radius: var(--r-xl); padding: var(--sp-6) var(--sp-5);
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+}
+.namegate__mark {
+  font-family: var(--mono); font-size: 2.25rem; color: var(--accent);
+  margin-bottom: var(--sp-2);
+}
+.namegate__card h1 { font-size: var(--fs-lg); margin-bottom: var(--sp-2); }
+.namegate__card p { margin-bottom: var(--sp-5); }
+.namegate__form { display: grid; gap: var(--sp-3); }
+.namegate__input {
+  font: inherit; color: var(--text); text-align: center;
+  padding: .7rem 1rem; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--line);
+  outline-offset: 2px;
+}
+.namegate__input::placeholder { color: var(--text-faint); }
+.namegate__input:focus-visible { border-color: var(--accent); }

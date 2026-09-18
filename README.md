@@ -213,6 +213,15 @@ survives a refresh on any route.
 
 ---
 
+## Teacher: seeing student progress
+
+By default the lab has no accounts and no server — every learner's progress
+lives only in their own browser. A teacher can opt into two extra things
+with no code changes: learners are asked for their name once, and their
+progress is mirrored to a Google Sheet the teacher owns. See
+[`teacher/SETUP.md`](teacher/SETUP.md) for the walkthrough (about 10
+minutes, no coding). Skip it entirely and nothing about the app changes.
+
 ## Verification
 
 `tools/verify.mjs` drives a real browser against a real Pyodide runtime and checks every claim
