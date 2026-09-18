@@ -36,6 +36,8 @@ export function experiment(ctx) {
     filename: scene.filename || 'program.py',
     readonly: false,
     showPipeline: false,
+    showInputs: Boolean(scene.stdin),
+    initialStdin: scene.stdin || [''],
     extraControls: [resetBtn],
     onChange: (v) => ctx.saveArtifact(scene.id, v),
     onResult: handleResult,

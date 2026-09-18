@@ -112,7 +112,7 @@ export function detective(ctx) {
     runBtn.disabled = true;
     terminal.clear();
     terminal.line('python broken.py', 'cmd');
-    const result = await runtime.run(code);
+    const result = await runtime.run(code, { stdin: scene.stdin || [] });
     bumpStat('runs');
     if (!result.ok) bumpStat('errors');
     terminal.showResult(result, { echoCommand: false });

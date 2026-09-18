@@ -32,6 +32,8 @@ export function repair(ctx) {
     code: saved,
     filename: scene.filename || 'broken.py',
     showPipeline: false,
+    showInputs: Boolean(scene.stdin),
+    initialStdin: scene.stdin || [''],
     onChange: (v) => ctx.saveArtifact(scene.id, v),
     onResult: handleResult,
   });

@@ -26,6 +26,8 @@ export function run(ctx) {
     filename: scene.filename || 'program.py',
     readonly: scene.readonly !== false,
     showPipeline: scene.pipeline !== false,
+    showInputs: Boolean(scene.stdin),
+    initialStdin: scene.stdin || [''],
     onResult: handleResult,
   });
 
@@ -80,7 +82,7 @@ export function run(ctx) {
         ctx.done();
       }
       feedback.ok(scene.successMessage || praise(n - 1), {
-        title: 'Program executed',
+        title: scene.successTitle || 'Program executed',
         extra: scene.successExtra || null,
       });
       next.hidden = false;

@@ -4,8 +4,9 @@ An interactive laboratory where a complete beginner learns Python by **running r
 CPython 3.14, compiled to WebAssembly, executes inside the browser tab. No server, no account,
 no build step — the repository is the deployable artefact.
 
-> Status: **prototype**. The application infrastructure is complete and Mission 01 is finished
-> and polished. Missions 02–10 are mapped but not written.
+> Status: all **ten missions are written and playable**, start to finish — variables, data
+> types, `input()`, decisions, loops, lists, functions, debugging, and a final project mission
+> that combines everything. See [Curriculum](#curriculum) below.
 
 ---
 
@@ -29,8 +30,8 @@ require an origin.
 | Screen | Purpose |
 | --- | --- |
 | **Home** | Lab entrance. The console on the right runs real Python the moment the page loads — it is not a recording. |
-| **Missions** | The ten-mission curriculum map, with published missions playable and planned ones marked. |
-| **Mission 01** | Nine interactive scenes. Detailed below. |
+| **Missions** | The ten-mission curriculum map. All ten are published and playable. |
+| **Mission 01** | Nine interactive scenes. Detailed below as the template every later mission follows. |
 | **Sandbox** | A free Python environment with a live variable inspector and loadable examples, including two that deliberately fail. |
 | **Progress** | Per-mission completion, plus counts of programs run, errors met and hints opened. |
 | **Badges** | Achievements, most of them for *behaviour* ("met your first error") rather than completion. |
@@ -49,6 +50,38 @@ require an origin.
 | 7 | Code completion | `fill` | Completes `print(____)`. Typing `Ali` without quotes produces a genuine `NameError`, which is the point. |
 | 8 | Code forge | `assemble` | Builds a line from blocks, including decoys (`Print`, unquoted text). |
 | 9 | Build your first program | `build` | Writes a three-line program from an empty file against a live requirement checklist. |
+
+### Curriculum
+
+Every mission below follows the same shape as Mission 01 — nine scenes moving from a guided
+`concept` demo through `run` → `experiment` → `quiz` → `repair` → `detective` → `fill` →
+`assemble` → `build` — except Mission 04, which adds the Inputs panel (see below), and Mission
+10, which is deliberately different: five open-ended `build` scenes with no fixed answer, meant
+to be attempted after everything else.
+
+| # | Mission | Teaches |
+| --- | --- | --- |
+| 01 | Your First Code | `print()`, strings, statements, reading a first error |
+| 02 | Variable Control | Variables, assignment, reassignment, `=` vs `==` |
+| 03 | Data Type Lab | `str` / `int` / `float`, `type()`, conversion, `str` + `int` TypeErrors |
+| 04 | Input Station | `input()`, prompts, converting what a person types |
+| 05 | Decision Lab | Comparisons, `if` / `elif` / `else`, indentation |
+| 06 | Loop Laboratory | `for`, `range()`, `while`, and stopping a runaway loop for real |
+| 07 | List Workshop | Lists, indexing from 0, `append()`, `len()` |
+| 08 | Function Factory | `def`, parameters, `return` vs `print()` |
+| 09 | Debugging Center | Reading multi-frame tracebacks, isolating a bug with `print()`, testing a fix |
+| 10 | Python Project | Open-ended synthesis of everything above — no new syntax, no fixed answer |
+
+Mission 04 introduced real `input()` support: an editable **Inputs** panel
+(`assets/js/ui/inputs.js`) lets a learner decide what each `input()` call receives, since there
+is no keyboard to actually type into inside an automated lesson. Every activity type that runs
+learner-editable code (`run`, `experiment`, `repair`, `build`) can show this panel via
+`scene.stdin`; `fill`, `assemble` and `detective` instead pass a fixed, non-editable `stdin`
+array straight to `runtime.run()`, since their code is not freely editable. Validator checks
+against input-driven programs deliberately avoid hardcoding one "typed" value where the panel is
+editable — they either use `stdoutMatches` with a regex **backreference** (when the echoed input
+and the output are a literal repeat) or a structural `codeMatches` check (when the check is
+really about *how* a value was converted, not what a learner chose to type).
 
 ---
 
@@ -83,6 +116,7 @@ assets/js/
   data/missions/
     index.js                  Curriculum registry and progress maths.
     m01-first-code.js         Mission 01, as pure data.
+    m02-variables.js … m10-python-project.js   Missions 02–10, same shape.
 tools/verify.mjs              End-to-end browser test of everything claimed here.
 ```
 
@@ -110,11 +144,14 @@ decorative. The engine then reboots itself automatically.
    thereafter.
 3. A small Python harness is installed once. It replaces `sys.stdout`/`sys.stderr` with objects
    that post each write straight back to the terminal, so **output streams as it is produced**.
+   The same harness exposes `_ptl_input()`, backing real `input()` calls from a queue supplied by
+   the Inputs panel — see Mission 04 above.
 4. Each run compiles the learner's code with the filename `<program>` and `exec`s it in a fresh
    namespace. Tracebacks are filtered down to frames belonging to `<program>`, so learners never
-   see the harness.
+   see the harness — including every frame of a multi-level call chain, which is what Mission 09
+   uses to teach reading a traceback from the bottom up.
 5. The worker returns `{ok, error{type,message,line,offset}, vars[], ms}`. The `vars` snapshot is
-   what drives the memory inspector — and is the reason Mission 02 will not need new runtime code.
+   what drives the memory inspector, used throughout Missions 02–10.
 
 ### Configuring the runtime source
 
@@ -130,9 +167,12 @@ and set the override. Both are verified paths — `tools/verify.mjs` uses exactl
 ### What is *not* faked
 
 - Every result in a terminal came from CPython. There are no canned outputs.
-- `input()` is not simulated. It raises a real `EOFError` with an explanation, because blocking
-  input needs `SharedArrayBuffer`, which needs COOP/COEP headers, which GitHub Pages cannot set.
-  Mission 04 will use a supplied-input queue; the harness already accepts one.
+- `input()` cannot truly *block* waiting on a keyboard — that needs `SharedArrayBuffer`, which
+  needs COOP/COEP headers, which GitHub Pages cannot set. Instead, the Inputs panel lets a
+  learner supply, in advance, what each call to `input()` will receive; the harness pops one
+  queued value per call and echoes it to the terminal exactly as a real keystroke-by-keystroke
+  answer would appear. If a program calls `input()` with nothing queued, it raises a real
+  `EOFError` with a plain-language explanation rather than hanging.
 - If the runtime cannot be downloaded, the engine chip reads *Engine unavailable*, Run is
   disabled, and the console names every source it tried. It never pretends.
 
@@ -158,14 +198,17 @@ writes the whole object to a JSON file for moving between machines.
 
 ## Adding another lesson
 
-Two steps. No application code changes.
+All ten planned missions are written, but the same two steps add an eleventh (or any future
+one) with no application code changes.
 
-**1. Write the data file** (`assets/js/data/missions/m02-variables.js`):
+**1. Write the data file** (`assets/js/data/missions/m11-whatever-comes-next.js`) — the shape is
+identical to every existing mission; `m01-first-code.js` is the fullest annotated example. A
+minimal one:
 
 ```js
 export default {
-  id: 'm02', code: 'MISSION 02', name: 'Variable Control',
-  objective: 'Give the computer a memory.',
+  id: 'm11', code: 'MISSION 11', name: 'Something New',
+  objective: 'Teach one more idea.',
   status: 'available',
   tasks: [{ id: 't1', label: 'Store a value' }],
   outcomes: ['Create a variable', 'Read it back'],
@@ -185,8 +228,8 @@ export default {
 };
 ```
 
-**2. Register it** in `assets/js/data/missions/index.js`: import it, add it to `MISSIONS`, and
-remove the matching placeholder. That is the whole change.
+**2. Register it** in `assets/js/data/missions/index.js`: import it and add it to the `MISSIONS`
+array. That is the whole change.
 
 Available activity types: `concept`, `run`, `experiment`, `repair`, `detective`, `fill`,
 `assemble`, `build`, `quiz`. Available validation rules are documented inline in
@@ -234,12 +277,20 @@ python3 -m http.server 8777          # in another terminal
 node tools/verify.mjs
 ```
 
-Last run (against a local copy of the same Pyodide 314.0.7 distribution the CDN serves):
+Last run against Mission 01 alone (against a local copy of the same Pyodide 314.0.7 distribution
+the CDN serves):
 
 ```
 51 passed, 0 failed
 console errors: none
 ```
+
+That run predates Missions 02–10 and the Inputs panel added for Mission 04 — every Python
+snippet and expected output in this mission set was instead checked with a local CPython
+interpreter running a faithful replica of the in-browser `input()` harness, since this
+development environment's egress policy blocks the Pyodide CDN `tools/verify.mjs` needs. Re-run
+`tools/verify.mjs` (extended to cover the new missions) somewhere with CDN access before treating
+this curriculum as browser-verified end to end.
 
 ---
 
@@ -255,8 +306,12 @@ console errors: none
   the beginner curriculum needs it.
 - **Stopping a program reboots the interpreter**, losing any state, because interrupting WASM
   CPython without `SharedArrayBuffer` is not possible.
-- **Progress is per-browser.** No accounts. Export/import covers moving between machines.
-- **Mission 01 only.** Missions 02–10 are placeholders in the registry.
+- **Progress is per-browser.** No accounts. Export/import covers moving between machines, or the
+  optional teacher Google Sheet sync described above.
+- **Structural, not semantic, checking.** A `build` scene's requirement checklist looks for the
+  shape of a correct program (uses `def`, uses `return`, calls a given function) plus its actual
+  output where that output is deterministic. It cannot catch every way to satisfy the letter of a
+  check while missing its spirit — the same trade-off every autograder makes.
 - **Autocomplete, multi-file projects and a step debugger are not implemented.**
 
 ## Browser support

@@ -40,6 +40,8 @@ export function build(ctx) {
     code: ctx.artifact(scene.id) || scene.code || '',
     filename: scene.filename || 'about_me.py',
     showMemory: scene.showMemory === true,
+    showInputs: Boolean(scene.stdin),
+    initialStdin: scene.stdin || [''],
     onChange: (v) => ctx.saveArtifact(scene.id, v),
     onResult: handleResult,
   });

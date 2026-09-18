@@ -9,6 +9,7 @@ import { createEditor } from './editor.js';
 import { createTerminal } from './terminal.js';
 import { createPipeline } from './viz/pipeline.js';
 import { createMemory } from './viz/memory.js';
+import { createInputs } from './inputs.js';
 import * as runtime from '../python/runtime.js';
 import { bumpStat } from '../core/store.js';
 
@@ -19,6 +20,8 @@ export function createWorkbench(options = {}) {
     readonly = false,
     showPipeline = false,
     showMemory = false,
+    showInputs = false,
+    initialStdin = [''],
     runLabel = 'Run',
     terminalTitle = 'output — python 3',
     onResult = () => {},
@@ -36,6 +39,7 @@ export function createWorkbench(options = {}) {
   const terminal = createTerminal({ title: terminalTitle });
   const pipeline = showPipeline ? createPipeline() : null;
   const memory = showMemory ? createMemory() : null;
+  const inputs = showInputs ? createInputs({ initial: initialStdin }) : null;
 
   const runBtn = h('button.btn.btn--primary', { type: 'button', onclick: () => doRun() }, [
     h('span', { 'aria-hidden': 'true' }, '▶'), h('span', null, runLabel),
@@ -48,6 +52,7 @@ export function createWorkbench(options = {}) {
 
   const root = h('div.stack', null, [
     editor.el,
+    inputs ? inputs.el : null,
     runbar,
     pipeline ? pipeline.el : null,
     terminal.el,
@@ -92,7 +97,7 @@ export function createWorkbench(options = {}) {
     const source = editor.value;
     let result;
     try {
-      result = await runtime.run(source, { stdin });
+      result = await runtime.run(source, { stdin: inputs ? inputs.getLines() : stdin });
     } catch (err) {
       running = false; runBtn.disabled = false; stopBtn.hidden = true;
       status.textContent = String(err.message || err);
@@ -120,7 +125,7 @@ export function createWorkbench(options = {}) {
   function destroy() { unsubs.forEach((f) => f()); terminal.destroy(); }
 
   return {
-    el: root, editor, terminal, pipeline, memory,
+    el: root, editor, terminal, pipeline, memory, inputs,
     run: doRun, destroy,
     runbar, runButton: runBtn,
     get lastResult() { return lastResult; },

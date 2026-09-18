@@ -1,28 +1,24 @@
 /**
  * Curriculum registry.
  *
- * The full ten-mission arc is declared here from day one so the app,
- * the map screen and the progress maths are all built against the real
- * shape of the course. Missions still in development carry
- * `status: 'planned'` and a stub; shipping one means importing its data
- * file and flipping the status. Nothing else changes.
+ * All ten missions are imported and registered here. Each mission file is
+ * pure data (see m01-first-code.js for the shape contract); nothing in this
+ * file or the engine needs to change to add, reorder or retire one — only
+ * this import list and the MISSIONS array below. A mission not yet written
+ * would carry `status: 'planned'` and no scenes; there are none right now.
  */
 import m01 from './m01-first-code.js';
+import m02 from './m02-variables.js';
+import m03 from './m03-data-types.js';
+import m04 from './m04-input-station.js';
+import m05 from './m05-decision-lab.js';
+import m06 from './m06-loop-laboratory.js';
+import m07 from './m07-list-workshop.js';
+import m08 from './m08-function-factory.js';
+import m09 from './m09-debugging-center.js';
+import m10 from './m10-python-project.js';
 
-/** Placeholder entries: everything the UI needs, minus the scenes. */
-const PLANNED = [
-  { id: 'm02', code: 'MISSION 02', name: 'Variable Control',  objective: 'Give the computer a memory.',            summary: 'Variables, assignment, naming, reassignment.',       concepts: ['variables', 'assignment', 'names'] },
-  { id: 'm03', code: 'MISSION 03', name: 'Data Type Lab',     objective: 'Learn what kind of thing a value is.',    summary: 'str, int, float, bool, conversion.',                 concepts: ['types', 'int', 'str', 'float', 'bool'] },
-  { id: 'm04', code: 'MISSION 04', name: 'Input Station',     objective: 'Let a human talk to your program.',       summary: 'input(), prompts, converting what you receive.',      concepts: ['input()', 'conversion'] },
-  { id: 'm05', code: 'MISSION 05', name: 'Decision Lab',      objective: 'Teach the program to choose.',            summary: 'if / elif / else, comparison, indentation.',          concepts: ['if', 'comparison', 'blocks'] },
-  { id: 'm06', code: 'MISSION 06', name: 'Loop Laboratory',   objective: 'Make the computer repeat itself.',        summary: 'for, while, range(), and the runaway loop.',          concepts: ['for', 'while', 'range'] },
-  { id: 'm07', code: 'MISSION 07', name: 'List Workshop',     objective: 'Store many things under one name.',       summary: 'Lists, indexing, append, iteration.',                 concepts: ['list', 'index', 'iteration'] },
-  { id: 'm08', code: 'MISSION 08', name: 'Function Factory',  objective: 'Build your own instructions.',            summary: 'def, parameters, return, reuse.',                     concepts: ['def', 'parameters', 'return'] },
-  { id: 'm09', code: 'MISSION 09', name: 'Debugging Center',  objective: 'Find faults on purpose.',                 summary: 'Reading tracebacks, isolating, testing a fix.',       concepts: ['traceback', 'isolation', 'testing'] },
-  { id: 'm10', code: 'MISSION 10', name: 'Python Project',    objective: 'Build something that is yours.',          summary: 'Combine everything into one working program.',        concepts: ['project'] },
-].map((m) => ({ ...m, status: 'planned', minutes: null, tasks: [], scenes: [], outcomes: [] }));
-
-export const MISSIONS = [m01, ...PLANNED];
+export const MISSIONS = [m01, m02, m03, m04, m05, m06, m07, m08, m09, m10];
 
 export function getMission(id) { return MISSIONS.find((m) => m.id === id) || null; }
 
