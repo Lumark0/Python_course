@@ -17,6 +17,32 @@ let activeURL = null;    // whichever source actually served the runtime
 function post(msg) { self.postMessage(msg); }
 function status(stage, message, progress) { post({ type: 'status', stage, message, progress }); }
 
+/* -----------------------------------------------------------------------
+   Output is batched, not sent one postMessage per write().
+   A program stuck in `while True: print(...)` never raises and never
+   touches the DOM directly — Python only runs in this worker — but with
+   nothing throttling it, CPython can call write() millions of times a
+   second, and one postMessage per call floods the MAIN thread with more
+   tiny tasks than it can ever finish. That is what makes the tab look
+   frozen: not the worker (which is fine), but the main thread never
+   getting a turn to run the "still running" watchdog or respond to a
+   click on Stop. Capping postMessage frequency, regardless of how fast
+   Python is producing output, keeps the main thread free the whole time.
+----------------------------------------------------------------------- */
+const IO_FLUSH_MS = 50;
+const IO_FLUSH_CHARS = 200000; // safety ceiling, not the normal trigger
+let ioBuf = [];
+let ioBufChars = 0;
+let ioLastFlush = 0;
+
+function flushIO() {
+  if (!ioBuf.length) return;
+  post({ type: 'io', items: ioBuf });
+  ioBuf = [];
+  ioBufChars = 0;
+  ioLastFlush = performance.now();
+}
+
 /* ---------------------------------------------------------------------
    Python-side harness. Installed once, reused for every run.
    - stdout/stderr are proxied straight back to the terminal so output
@@ -203,7 +229,10 @@ async function init(sources) {
 
     status('stdlib', 'Mounting the standard library', 0.75);
     pyodide.globals.set('_ptl_emit', (kind, text) => {
-      post({ type: 'io', kind, text });
+      ioBuf.push({ kind, text });
+      ioBufChars += text.length;
+      const now = performance.now();
+      if (ioBufChars >= IO_FLUSH_CHARS || now - ioLastFlush >= IO_FLUSH_MS) flushIO();
     });
 
     status('warm', 'Warming up the interpreter', 0.9);
@@ -228,10 +257,12 @@ async function init(sources) {
 async function run(runId, code, stdin) {
   if (!ready) { post({ type: 'result', runId, ok: false, fatal: 'Python engine is not ready yet.' }); return; }
   const started = performance.now();
+  ioBuf = []; ioBufChars = 0; ioLastFlush = started;
   post({ type: 'run:start', runId });
   try {
     const raw = runner(code, JSON.stringify(stdin || []));
     const parsed = JSON.parse(raw);
+    flushIO();
     post({
       type: 'result',
       runId,
@@ -241,6 +272,7 @@ async function run(runId, code, stdin) {
       ms: Math.round(performance.now() - started),
     });
   } catch (err) {
+    flushIO();
     post({
       type: 'result', runId, ok: false,
       error: { type: 'InternalError', message: String(err), line: null, formatted: String(err) },

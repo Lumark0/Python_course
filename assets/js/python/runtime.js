@@ -103,9 +103,15 @@ function onMessage(event) {
     }
 
     case 'io':
+      // The worker batches writes (see worker.js) so a runaway print loop
+      // can never flood this thread with more messages than it can keep
+      // up with — each 'io' message carries a small ordered batch rather
+      // than a single write() call.
       if (pending) {
-        pending.io.push({ kind: msg.kind, text: msg.text });
-        emit('python:io', { runId: pending.runId, kind: msg.kind, text: msg.text });
+        for (const item of (msg.items || [])) {
+          pending.io.push(item);
+          emit('python:io', { runId: pending.runId, kind: item.kind, text: item.text });
+        }
       }
       break;
 

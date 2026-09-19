@@ -133,6 +133,17 @@ freeze the page permanently. In a worker the UI stays responsive and the main th
 `terminate()` a runaway program — which is what makes the **Stop** button real rather than
 decorative. The engine then reboots itself automatically.
 
+Being in a worker is not, by itself, enough. A silent `while True: pass` never touches the main
+thread at all, so Stop always worked for that case — but a *printing* infinite loop
+(`while True: print(n)`, the far more common beginner mistake) calls `write()` millions of times
+a second, and the worker originally sent one `postMessage` per call. That flooded the *main*
+thread with more small tasks than it could ever finish, so the timer that reveals the Stop
+button — and the click on it once shown — were starved out along with everything else, even
+though the worker itself was never stuck. The fix (`worker.js`) batches output on a rolling
+~50ms timer regardless of how fast Python is producing it, so postMessage traffic stays around
+20/second no matter how tight the loop is, and the main thread — and therefore Stop — stays
+responsive. Mission 06's runaway-loop scene depends on this.
+
 ---
 
 ## How Python execution works
