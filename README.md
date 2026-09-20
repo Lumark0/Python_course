@@ -144,6 +144,22 @@ though the worker itself was never stuck. The fix (`worker.js`) batches output o
 20/second no matter how tight the loop is, and the main thread — and therefore Stop — stays
 responsive. Mission 06's runaway-loop scene depends on this.
 
+Throttling the *rate* turned out not to be the whole story. A loop that keeps running for several
+seconds before a learner clicks Stop can still queue up a long run of these throttled messages one
+after another — each cheap on its own, but the main thread has to work through every one already
+queued before it can react to anything else, including the click on Stop itself. The longer the
+loop had been running, the bigger that backlog, which is exactly what turned "the Stop button
+appeared correctly" into "clicking it didn't seem to do anything, and the tab locked up anyway" a
+few seconds later — a real report from testing this against the deployed site, not a theoretical
+gap. Past a certain point a runaway loop's output isn't useful to the learner either way, so
+`worker.js` also caps the *total* number of these messages a single run can ever send (currently
+200) — once hit, further output is dropped with a one-line note instead of adding to the backlog.
+That guarantees the main thread never has more than a small, bounded amount of work left to drain,
+no matter how long the loop ran before Stop was clicked or how fast the interpreter turns out to
+be. `runtime.js`'s `stop()` also detaches the worker's message handler *before* terminating it, so
+anything already queued from the worker being killed is ignored immediately rather than still being
+worked through one message at a time.
+
 ---
 
 ## How Python execution works

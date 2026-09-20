@@ -28,19 +28,49 @@ function status(stage, message, progress) { post({ type: 'status', stage, messag
    getting a turn to run the "still running" watchdog or respond to a
    click on Stop. Capping postMessage frequency, regardless of how fast
    Python is producing output, keeps the main thread free the whole time.
+
+   Capping frequency alone is not enough, though: a loop that runs for
+   several seconds before Stop is clicked can still queue up hundreds of
+   these throttled flushes one after another. Each is cheap, but the
+   MAIN thread has to work through every message already sitting in its
+   queue before it can do anything else — including reacting to a click
+   on Stop. The longer the loop has been running when Stop is finally
+   clicked, the bigger that backlog, which is exactly what turns "the
+   watchdog and Stop button appeared correctly" into "clicking Stop
+   didn't seem to do anything and the tab froze anyway" a few seconds
+   later. A runaway loop's output past a certain point is also not
+   useful to the learner — they already know it is not going to stop on
+   its own. So on top of throttling the rate, this also puts a hard
+   ceiling on the total number of output messages a single run can ever
+   queue: once hit, further output is dropped (with one note saying so)
+   instead of adding to the backlog, so there is never more than a small,
+   bounded amount of work left for the main thread to drain, no matter
+   how long the loop has already been running.
 ----------------------------------------------------------------------- */
 const IO_FLUSH_MS = 50;
 const IO_FLUSH_CHARS = 200000; // safety ceiling, not the normal trigger
+const IO_MAX_FLUSHES_PER_RUN = 200; // hard ceiling on total postMessage calls, not just their rate
 let ioBuf = [];
 let ioBufChars = 0;
 let ioLastFlush = 0;
+let ioFlushCount = 0;
+let ioCapped = false;
 
 function flushIO() {
   if (!ioBuf.length) return;
+  if (ioCapped) { ioBuf = []; ioBufChars = 0; ioLastFlush = performance.now(); return; }
   post({ type: 'io', items: ioBuf });
   ioBuf = [];
   ioBufChars = 0;
   ioLastFlush = performance.now();
+  ioFlushCount += 1;
+  if (ioFlushCount >= IO_MAX_FLUSHES_PER_RUN) {
+    ioCapped = true;
+    post({
+      type: 'io',
+      items: [{ kind: 'stderr', text: '\n[Output stopped — this program is producing too much to show. Click ■ Stop to interrupt it.]\n' }],
+    });
+  }
 }
 
 /* ---------------------------------------------------------------------
@@ -257,7 +287,7 @@ async function init(sources) {
 async function run(runId, code, stdin) {
   if (!ready) { post({ type: 'result', runId, ok: false, fatal: 'Python engine is not ready yet.' }); return; }
   const started = performance.now();
-  ioBuf = []; ioBufChars = 0; ioLastFlush = started;
+  ioBuf = []; ioBufChars = 0; ioLastFlush = started; ioFlushCount = 0; ioCapped = false;
   post({ type: 'run:start', runId });
   try {
     const raw = runner(code, JSON.stringify(stdin || []));

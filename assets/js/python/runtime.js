@@ -190,6 +190,14 @@ export async function run(code, options = {}) {
 export function stop() {
   if (!worker) return false;
   const wasRunning = Boolean(pending);
+  // Detach first: terminate() does not retroactively cancel messages the
+  // worker already posted before we killed it, and a runaway loop can have
+  // a real backlog of those queued up. Without this, the main thread would
+  // still have to work through all of them — each a no-op once `pending`
+  // below is cleared, but not free to simply skip past — before it could
+  // get to anything else, which is what made Stop look like it was doing
+  // nothing right when a learner needed it to react instantly.
+  worker.onmessage = null;
   worker.terminate();
   worker = null;
 
