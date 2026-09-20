@@ -29,31 +29,47 @@ function status(stage, message, progress) { post({ type: 'status', stage, messag
    click on Stop. Capping postMessage frequency, regardless of how fast
    Python is producing output, keeps the main thread free the whole time.
 
-   Capping frequency alone is not enough, though: a loop that runs for
-   several seconds before Stop is clicked can still queue up hundreds of
-   these throttled flushes one after another. Each is cheap, but the
-   MAIN thread has to work through every message already sitting in its
-   queue before it can do anything else — including reacting to a click
-   on Stop. The longer the loop has been running when Stop is finally
-   clicked, the bigger that backlog, which is exactly what turns "the
-   watchdog and Stop button appeared correctly" into "clicking Stop
-   didn't seem to do anything and the tab froze anyway" a few seconds
-   later. A runaway loop's output past a certain point is also not
-   useful to the learner — they already know it is not going to stop on
-   its own. So on top of throttling the rate, this also puts a hard
-   ceiling on the total number of output messages a single run can ever
-   queue: once hit, further output is dropped (with one note saying so)
-   instead of adding to the backlog, so there is never more than a small,
-   bounded amount of work left for the main thread to drain, no matter
-   how long the loop has already been running.
+   Capping frequency alone is not enough, though. Two gaps, found by
+   actually testing this against a runaway `while True: print(n)`:
+
+   1. A loop that runs for several seconds before Stop is clicked can
+      still queue up hundreds of these throttled flushes one after
+      another. Each is cheap, but the MAIN thread has to work through
+      every message already sitting in its queue before it can do
+      anything else — including reacting to a click on Stop. Fixed by
+      capping the total number of flush *messages* a run can ever send
+      (IO_MAX_FLUSHES_PER_RUN): past that, further output is dropped
+      instead of adding to the backlog.
+
+   2. That alone still was not enough: IO_FLUSH_CHARS bounds a flush by
+      *character count*, not by how many separate write() calls it
+      contains. A loop whose output is short and constant — exactly
+      Mission 06's `print(n)` where n never changes, so every write is
+      just "3" or "\n" — can pack tens of thousands of individual items
+      into a single 200,000-character flush. The postMessage *count*
+      stays capped, but each message can still be huge to deserialize,
+      so the main thread ends up doing the same amount of backlog work
+      it always did, just spread across fewer, bigger messages instead
+      of many small ones. Fixed by capping the total number of output
+      *items* a run can ever relay (IO_MAX_ITEMS_PER_RUN), checked on
+      every single write — independent of how long each string is or
+      how the buffer happens to get flushed — so the absolute worst
+      case is always a small, fixed number of tiny objects, no matter
+      how fast or how long the loop runs.
+
+   A runaway loop's output past a certain point is not useful to the
+   learner either way — they already know it is not going to stop on
+   its own.
 ----------------------------------------------------------------------- */
 const IO_FLUSH_MS = 50;
 const IO_FLUSH_CHARS = 200000; // safety ceiling, not the normal trigger
 const IO_MAX_FLUSHES_PER_RUN = 200; // hard ceiling on total postMessage calls, not just their rate
+const IO_MAX_ITEMS_PER_RUN = 2000; // hard ceiling on total write() calls relayed, regardless of batching
 let ioBuf = [];
 let ioBufChars = 0;
 let ioLastFlush = 0;
 let ioFlushCount = 0;
+let ioItemsTotal = 0;
 let ioCapped = false;
 
 function flushIO() {
@@ -64,13 +80,16 @@ function flushIO() {
   ioBufChars = 0;
   ioLastFlush = performance.now();
   ioFlushCount += 1;
-  if (ioFlushCount >= IO_MAX_FLUSHES_PER_RUN) {
-    ioCapped = true;
-    post({
-      type: 'io',
-      items: [{ kind: 'stderr', text: '\n[Output stopped — this program is producing too much to show. Click ■ Stop to interrupt it.]\n' }],
-    });
-  }
+  if (ioFlushCount >= IO_MAX_FLUSHES_PER_RUN) capIO();
+}
+
+function capIO() {
+  if (ioCapped) return;
+  ioCapped = true;
+  post({
+    type: 'io',
+    items: [{ kind: 'stderr', text: '\n[Output stopped — this program is producing too much to show. Click ■ Stop to interrupt it.]\n' }],
+  });
 }
 
 /* ---------------------------------------------------------------------
@@ -259,6 +278,12 @@ async function init(sources) {
 
     status('stdlib', 'Mounting the standard library', 0.75);
     pyodide.globals.set('_ptl_emit', (kind, text) => {
+      // Cheapest possible check first: once capped, do zero further work
+      // per call — no push, no length math — since a tight loop can call
+      // this millions of times a second.
+      if (ioCapped) return;
+      ioItemsTotal += 1;
+      if (ioItemsTotal > IO_MAX_ITEMS_PER_RUN) { capIO(); return; }
       ioBuf.push({ kind, text });
       ioBufChars += text.length;
       const now = performance.now();
@@ -287,7 +312,7 @@ async function init(sources) {
 async function run(runId, code, stdin) {
   if (!ready) { post({ type: 'result', runId, ok: false, fatal: 'Python engine is not ready yet.' }); return; }
   const started = performance.now();
-  ioBuf = []; ioBufChars = 0; ioLastFlush = started; ioFlushCount = 0; ioCapped = false;
+  ioBuf = []; ioBufChars = 0; ioLastFlush = started; ioFlushCount = 0; ioItemsTotal = 0; ioCapped = false;
   post({ type: 'run:start', runId });
   try {
     const raw = runner(code, JSON.stringify(stdin || []));
